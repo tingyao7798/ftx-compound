@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ftx-auto-compound
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  CompoundFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ftx_auto_compound/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          SECRET_NAME: prod/ftx/zlz
+          SUBACC_NAME: zlz
+      Events:
+        FtxCompound:
+          Type: Schedule
+          Properties:
+            Schedule: cron(10 */12 * * ? *)
+            Description: compound twice a day at min 10
+            Enabled: True
+      Policies:
+        - Statement:
+          - Sid: SecretsManagerRead
+            Effect: Allow
+            Action:
+            - secretsmanager:GetRandomPassword
+            - secretsmanager:GetResourcePolicy
+            - secretsmanager:GetSecretValue
+            - secretsmanager:DescribeSecret
+            - secretsmanager:ListSecretVersionIds
+            - secretsmanager:ListSecret
+            - kms:GetParametersForImport
+            - kms:DescribeCustomKeyStores
+            - kms:ListKeys
+            - kms:GetPublicKey
+            - kms:DescribeKey
+            Resource: '*'
+
+
+Outputs:
+  CompoundLambda:
+    Description: "FTX Compound Lambda Function ARN"
+    Value: !GetAtt CompoundFunction.Arn
+  FtxCompoundIAMRole:
+    Description: "Implicit IAM Role created for FTX Compound function"
+    Value: !GetAtt CompoundFunctionRole.Arn
